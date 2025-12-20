@@ -1,0 +1,15 @@
+{
+  "name": "snap-map-backend",
+  "version": "1.0.0",
+  "description": "Backend for Snap Map application",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {}
+}
