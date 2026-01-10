@@ -1,16 +1,21 @@
 import React, { useState } from "react";
-import { Alert, Button, Image, View } from "react-native";
+import {
+  Alert,
+  Image,
+  Text,
+  TouchableOpacity,
+  View,
+  TextInput,
+} from "react-native";
 import Constants from "expo-constants";
 import { useAuth } from "@clerk/clerk-expo";
 import type { ScreenProps } from "../types";
 import UploadConfirmationStyle from "../styles/UploadConfirmationStyle";
 
 const styles = UploadConfirmationStyle;
+
 const API_BASE_URL =
   Constants.expoConfig?.extra?.API_BASE_URL ?? "http://localhost:5000";
-
-console.log("API_BASE_URL:", API_BASE_URL);
-console.log("Constants.expoConfig?.extra:", Constants.expoConfig?.extra);
 
 const UploadConfirmationScreen = ({
   navigation,
@@ -20,27 +25,24 @@ const UploadConfirmationScreen = ({
   const { getToken } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
 
-  const handleUpload = async () => {
-    if (!photo?.uri) {
-      Alert.alert("No photo found", "Please retake and try again.");
-      return;
-    }
+  if (!photo?.uri) {
+    Alert.alert("No photo found", "Please retake and try again.");
+    navigation.goBack();
+    return null;
+  }
 
+  const handleUpload = async () => {
     if (!location?.coords) {
-      Alert.alert("Missing location", "Please enable location and try again.");
+      Alert.alert("Missing location", "Enable location and try again.");
       return;
     }
 
     if (isUploading) return;
-
     setIsUploading(true);
 
     try {
       const token = await getToken();
-      if (!token) {
-        Alert.alert("Auth error", "Please sign in again.");
-        return;
-      }
+      if (!token) throw new Error("Auth error");
 
       const form = new FormData();
       form.append("photo", {
@@ -51,68 +53,79 @@ const UploadConfirmationScreen = ({
       form.append("lat", String(location.coords.latitude));
       form.append("lon", String(location.coords.longitude));
 
-      const uploadUrl = `${API_BASE_URL}/api/v1/photos/upload-photo`;
-      console.log("Uploading to:", uploadUrl);
-      console.log("Token:", token.substring(0, 20) + "...");
-      console.log("Full Token:", token);
+      const response = await fetch(
+        `${API_BASE_URL}/api/v1/photos/upload-photo`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        }
+      );
 
-      const response = await fetch(uploadUrl, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: form,
-      });
+      if (!response.ok) throw new Error("Upload failed");
 
-      const text = await response.text();
-      let data: any = {};
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch {
-        data = { raw: text };
-      }
-
-      if (!response.ok) {
-        const message = data?.message || `Upload failed (${response.status})`;
-        throw new Error(message);
-      }
-
-      Alert.alert("Success", "Photo uploaded successfully.", [
+      Alert.alert("Success", "Photo uploaded successfully", [
         { text: "OK", onPress: () => navigation.navigate("HomeScreen") },
       ]);
     } catch (error: any) {
-      Alert.alert(
-        "Upload failed",
-        error?.message || "Something went wrong during upload."
-      );
+      Alert.alert("Upload failed", error.message);
     } finally {
       setIsUploading(false);
     }
   };
 
-  if (!photo?.uri) {
-    return (
-      Alert.alert("No photo found", " retake or try agin."),
-      navigation.goBack(),
-      (<View />)
-    );
-  }
-
   return (
-    <View style={styles.root}>
-      <Image source={{ uri: photo.uri }} style={styles.preview} />
-      <View style={styles.actions}>
-        <Button
-          title={isUploading ? "Uploading..." : "Upload Photo"}
-          onPress={handleUpload}
-          disabled={isUploading}
-        />
-        <Button
-          title="Wanna Retake?"
-          onPress={() => navigation.goBack()}
-          disabled={isUploading}
-        />
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.headerRow}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.backIcon}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.header}>New Post</Text>
+        <View style={{ width: 24 }} />
       </View>
+
+      {/* Image Card */}
+      <View style={styles.imageCard}>
+        <Image source={{ uri: photo.uri }} style={styles.previewImage} />
+
+        <View style={styles.locationBadge}>
+          <Text style={styles.locationText}>📍 Main Court</Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.retakeIcon}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.retakeText}>⟳</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Caption */}
+      <View style={styles.captionBox}>
+        <TextInput
+          placeholder="Write a caption..."
+          placeholderTextColor="#999"
+          style={styles.captionInput}
+        />
+        <Text style={styles.emoji}>🙂</Text>
+      </View>
+
+      {/* Add Photo */}
+      <TouchableOpacity
+        style={styles.primaryButton}
+        onPress={handleUpload}
+        disabled={isUploading}
+      >
+        <Text style={styles.primaryButtonText}>
+          {isUploading ? "Uploading..." : "Add Photo  >"}
+        </Text>
+      </TouchableOpacity>
+
+      {/* Cancel */}
+      <TouchableOpacity onPress={() => navigation.goBack()}>
+        <Text style={styles.cancelText}>Cancel</Text>
+      </TouchableOpacity>
     </View>
   );
 };
