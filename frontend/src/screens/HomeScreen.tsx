@@ -12,7 +12,7 @@ const styles = HomeStyle;
 
 const HomeScreen = ({ navigation }: ScreenProps<"HomeScreen">) => {
   const { user } = useUser();
-  const { signOut } = useAuth();
+  // const { signOut } = useAuth();
 
   console.log("user", user);
 
@@ -24,19 +24,19 @@ const HomeScreen = ({ navigation }: ScreenProps<"HomeScreen">) => {
     }
   }, [user, navigation]);
 
-  const logout = async () => {
-    try {
-      await signOut();
-      navigation.dispatch(
-        CommonActions.reset({
-          index: 0,
-          routes: [{ name: "SplashScreen" }],
-        })
-      );
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
+  // const logout = async () => {
+  //   try {
+  //     // await signOut();
+  //     navigation.dispatch(
+  //       CommonActions.reset({
+  //         index: 0,
+  //         routes: [{ name: "SplashScreen" }],
+  //       })
+  //     );
+  //   } catch (error) {
+  //     console.error("Logout failed:", error);
+  //   }
+  // };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -85,8 +85,8 @@ const HomeScreen = ({ navigation }: ScreenProps<"HomeScreen">) => {
         </TouchableOpacity>
       </View>
       <View style={styles.logout}>
-        <TouchableOpacity onPress={logout}>
-          <Text style={styles.buttonText}>Log out</Text>
+        <TouchableOpacity onPress={() => navigation.navigate("SettingsScreen")}>
+          <Text style={styles.buttonText}>Settings</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
