@@ -2,7 +2,7 @@ import User from "../models/User.js"
 import { createClerkClient } from "@clerk/backend"
 import crypto from "crypto";
 import path from "path";
-import singleUploadToAzure from "../utils/azure.js";
+import {singleUploadToAzure} from "../utils/azure.js";
 
 const clerkClient = createClerkClient({
   secretKey: process.env.CLERK_SECRET_KEY,
