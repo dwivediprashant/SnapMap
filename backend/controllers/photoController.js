@@ -2,7 +2,7 @@ import crypto from "crypto";
 import path from "path";
 import Photo from "../models/Photo.js";
 import User from "../models/User.js";
-import singleUploadToAzure from "../utils/azure.js";
+import { singleUploadToAzure, multiUploadToAzure } from "../utils/azure.js";
 
 const buildFileName = (originalName, clerkUserId) => {
   const ext = path.extname(originalName || "").toLowerCase();
@@ -237,13 +237,16 @@ export const uploadPhotos = async(req,res)=>{
       return res.status(404).json({ message: "User not registered" });
     }
 
-    const imageUrls = [];
+    const fileBuffers = [];
+    const fileNames = [];
 
     for (const file of req.files) {
-      const fileName = buildFileName(file.originalname, req.userId);
-      const imageUrl = await singleUploadToAzure(file.buffer, fileName);
-      imageUrls.push(imageUrl);
+      fileBuffers.push(file.buffer);
+      fileNames.push(buildFileName(file.originalname, req.userId));
     }
+
+    const imageUrls = await multiUploadToAzure(fileBuffers, fileNames);
+
 
     const photo = await Photo.create({
       userId: user._id,

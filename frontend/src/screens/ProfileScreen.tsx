@@ -124,7 +124,14 @@ const ProfileScreen = ({ navigation }: ScreenProps<"ProfileScreen">) => {
         },
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
+
+      if (!response.ok) {
+        throw new Error(rawText);
+      }
+
+      const data = JSON.parse(rawText);
+
 
       if (response.ok && data.user) {
         setProfile({
@@ -252,7 +259,15 @@ const ProfileScreen = ({ navigation }: ScreenProps<"ProfileScreen">) => {
         body: formData,
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
+
+      let data = {};
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        data = {};
+      }
+
 
       if (response.ok) {
         setProfile((prev) => ({

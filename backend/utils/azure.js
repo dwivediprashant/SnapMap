@@ -38,4 +38,38 @@ async function singleUploadToAzure(buffer, fileName) {
 
 }
 
-export default singleUploadToAzure
+async function multiUploadToAzure(fileBuffers, fileNames) {
+  if (!Array.isArray(fileBuffers) || !Array.isArray(fileNames)) {
+    throw new Error("Invalid upload params");
+  }
+
+  if (fileBuffers.length !== fileNames.length) {
+    throw new Error("Buffers and filenames count mismatch");
+  }
+
+  if (!process.env.AZURE_STORAGE_CONNECTION) {
+    throw new Error("Connection string is required");
+  }
+
+  const blobServiceClient = BlobServiceClient.fromConnectionString(
+    process.env.AZURE_STORAGE_CONNECTION
+  );
+
+  await blobServiceClient.getAccountInfo();
+
+  const containerClient = blobServiceClient.getContainerClient(CONTAINER_NAME);
+
+  await containerClient.createIfNotExists({ access: "blob" });
+
+  const urls = [];
+
+  for (let i = 0; i < fileBuffers.length; i++) {
+    const blockBlobClient = containerClient.getBlockBlobClient(fileNames[i]);
+    await blockBlobClient.uploadData(fileBuffers[i]);
+    urls.push(blockBlobClient.url);
+  }
+
+  return urls;
+}
+
+export { singleUploadToAzure, multiUploadToAzure };
