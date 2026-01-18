@@ -162,7 +162,7 @@ const MapScreen = ({ navigation }: ScreenProps<"MapScreen">) => {
           style={styles.profileButton}
           onPress={() => navigation.navigate("ProfileScreen")}
         >
-          {profile.profileImage ? (
+          {profile?.profileImage ? (
             <Image
               source={{ uri: profile.profileImage }}
               style={styles.profileAvatar}

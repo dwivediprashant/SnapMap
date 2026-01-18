@@ -1,5 +1,7 @@
 import {BlobServiceClient} from "@azure/storage-blob"
 import { configDotenv } from "dotenv"
+import path from "path";
+import crypto from "crypto";
 
 configDotenv()
 
@@ -72,4 +74,15 @@ async function multiUploadToAzure(fileBuffers, fileNames) {
   return urls;
 }
 
-export { singleUploadToAzure, multiUploadToAzure };
+async function profileImageUploadToAzure(file, userId) {
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    const safeExt = ext && ext.length <= 10 ? ext : ".jpg";
+    const id = crypto.randomUUID();
+    const fileName = `${userId}/profile/${Date.now()}-${id}${safeExt}`;
+    
+    const imageUrl = await singleUploadToAzure(file.buffer, fileName);
+    console.log("Profile image uploaded successfully:", imageUrl);
+    return imageUrl;
+}
+
+export { singleUploadToAzure, multiUploadToAzure, profileImageUploadToAzure };

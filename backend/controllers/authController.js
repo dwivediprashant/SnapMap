@@ -1,8 +1,6 @@
 import User from "../models/User.js"
 import { createClerkClient } from "@clerk/backend"
-import crypto from "crypto";
-import path from "path";
-import {singleUploadToAzure} from "../utils/azure.js";
+import {profileImageUploadToAzure, singleUploadToAzure} from "../utils/azure.js";
 
 const clerkClient = createClerkClient({
   secretKey: process.env.CLERK_SECRET_KEY,
@@ -129,18 +127,13 @@ export const profileUpdate = async (req, res) => {
         if (year !== undefined) {
             updateFields.year = year;
         }
+
+
         
         // Handle profile image upload if provided
         if (req.file && req.file.buffer) {
             try {
-                const ext = path.extname(req.file.originalname || "").toLowerCase();
-                const safeExt = ext && ext.length <= 10 ? ext : ".jpg";
-                const id = crypto.randomUUID();
-                const fileName = `${clerkUserId}/profile/${Date.now()}-${id}${safeExt}`;
-                
-                const imageUrl = await singleUploadToAzure(req.file.buffer, fileName);
-                console.log("Profile image uploaded successfully:", imageUrl);
-                updateFields.profileImage = imageUrl;
+                updateFields.profileImage = await profileImageUploadToAzure(req.file, clerkUserId);
             } catch (uploadError) {
                 console.error("Error uploading profile image:", uploadError);
                 return res.status(500).json({ message: "Failed to upload profile image: " + uploadError.message });
