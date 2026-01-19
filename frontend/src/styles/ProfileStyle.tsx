@@ -61,24 +61,32 @@ const ProfileStyle = StyleSheet.create({
   nameContainer: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     marginBottom: 8,
+    maxWidth: "90%",   //  constrain the whole row
   },
+
   userName: {
     fontSize: 24,
     fontWeight: "700",
     color: "#1A1A1A",
+    maxWidth: "45%",   //  critical for ellipsis
   },
+
   separator: {
     fontSize: 24,
     fontWeight: "300",
     color: "#FF6B8A",
     marginHorizontal: 8,
   },
+
   collegeName: {
     fontSize: 24,
     fontWeight: "700",
     color: "#FF6B8A",
+    maxWidth: "45%",   //  critical for ellipsis
   },
+
   bio: {
     fontSize: 14,
     color: "#666",

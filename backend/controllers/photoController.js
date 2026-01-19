@@ -19,10 +19,10 @@ export const uploadPhoto = async (req, res) => {
       "File info:",
       req.file
         ? {
-            fieldname: req.file.fieldname,
-            size: req.file.size,
-            mimetype: req.file.mimetype,
-          }
+          fieldname: req.file.fieldname,
+          size: req.file.size,
+          mimetype: req.file.mimetype,
+        }
         : "No file"
     );
     console.log("UserId:", req.userId);
@@ -207,8 +207,8 @@ export const testUploadPhoto = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in test upload:", error);
-    return res.status(500).json({ 
-      message: "Internal server error: " + error.message 
+    return res.status(500).json({
+      message: "Internal server error: " + error.message
     });
   }
 };
@@ -216,23 +216,23 @@ export const testUploadPhoto = async (req, res) => {
 
 
 
-export const uploadPhotos = async(req,res)=>{
-  try{
-    const{lat,lon,caption} = req.body || {};
+export const uploadPhotos = async (req, res) => {
+  try {
+    const { lat, lon, caption } = req.body || {};
     const latitude = parseFloat(lat);
     const longitude = parseFloat(lon);
 
-    if(!req.userId){
-      return res.status(401).json({ message: "Unauthorized"});
+    if (!req.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
-        if (!req.files || req.files.length === 0) {
+    if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: "No photos provided" });
     }
 
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
       return res.status(400).json({ message: "Invalid or missing lat/lon" });
     }
-       const user = await User.findOne({ clerkUserId: req.userId });
+    const user = await User.findOne({ clerkUserId: req.userId });
     if (!user) {
       return res.status(404).json({ message: "User not registered" });
     }
@@ -279,4 +279,33 @@ export const uploadPhotos = async(req,res)=>{
     });
 
   }
+
 };
+export const getUserPhotos = async (req, res) => {
+  try {
+    console.log("📂 Fetching user photos");
+
+    // authMiddleware sets this
+    const clerkUserId = req.userId;
+
+    if (!clerkUserId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const photos = await Photo.find({ clerkUserId })
+      .sort({ timestamp: -1 })
+      .lean();
+
+    console.log(`✅ Found ${photos.length} photos for user ${clerkUserId}`);
+
+    return res.status(200).json({
+      photos: photos.map((p) => p.imageUrl),
+    });
+  } catch (error) {
+    console.error("Error fetching user photos:", error);
+    return res.status(500).json({
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
+

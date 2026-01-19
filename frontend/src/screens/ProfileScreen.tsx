@@ -28,18 +28,6 @@ const styles = ProfileStyle;
 // Year options - same as RegisterUserScreen
 const YEAR_OPTIONS = ["1st", "2nd", "3rd", "4th", "5th", "Graduate", "Other"];
 
-// Mock data for gallery images
-const mockGalleryImages = [
-  { id: "1", url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300" },
-  { id: "2", url: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=300" },
-  { id: "3", url: "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=300" },
-  { id: "4", url: "https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=300" },
-  { id: "5", url: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=300" },
-  { id: "6", url: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=300" },
-  { id: "7", url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=300" },
-  { id: "8", url: "https://images.unsplash.com/photo-1518173946687-a4c036bc3c95?w=300" },
-  { id: "9", url: "https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=300" },
-];
 
 interface UserProfile {
   name: string;
@@ -57,6 +45,10 @@ const ProfileScreen = ({ navigation }: ScreenProps<"ProfileScreen">) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [totalSnaps, setTotalSnaps] = useState<number>(0);
+  const [isGalleryLoading, setIsGalleryLoading] = useState(true);
+
 
   // Profile data (GLOBAL via context)
   const { profile, setProfile } = useProfile();
@@ -82,14 +74,17 @@ const ProfileScreen = ({ navigation }: ScreenProps<"ProfileScreen">) => {
 
   // Stats (mock data for now)
   const stats = {
-    snaps: 124,
+    snaps: totalSnaps,
     views: "14.5k",
     impact: "Top 5%",
   };
 
+
   useEffect(() => {
     fetchProfile();
+    fetchUserPhotos();
   }, []);
+
 
   const fetchProfile = async () => {
     setIsLoading(true);
@@ -159,6 +154,43 @@ const ProfileScreen = ({ navigation }: ScreenProps<"ProfileScreen">) => {
       setIsLoading(false);
     }
   };
+
+  const fetchUserPhotos = async () => {
+    if (!user?.id) return;
+
+    try {
+      setIsGalleryLoading(true);
+
+      const token = await getToken();
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/v1/photos/get-user-photos`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok && Array.isArray(data.photos)) {
+        setGalleryImages(data.photos);
+        setTotalSnaps(data.photos.length);
+      } else {
+        setGalleryImages([]);
+        setTotalSnaps(0);
+      }
+    } catch (err) {
+      console.error("Error fetching user photos:", err);
+      setGalleryImages([]);
+      setTotalSnaps(0);
+    } finally {
+      setIsGalleryLoading(false);
+    }
+  };
+
 
   const openEditModal = () => {
     setEditForm({
@@ -332,10 +364,25 @@ const ProfileScreen = ({ navigation }: ScreenProps<"ProfileScreen">) => {
 
           {/* Name and College */}
           <View style={styles.nameContainer}>
-            <Text style={styles.userName}>{profile.name}</Text>
-            <Text style={styles.separator}>|</Text>
-            <Text style={styles.collegeName}>{profile.collegeName}</Text>
+            <Text
+              style={styles.userName}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {profile.name}
+            </Text>
+
+            <Text style={styles.separator}> | </Text>
+
+            <Text
+              style={styles.collegeName}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {profile.collegeName}
+            </Text>
           </View>
+
 
           {/* Bio */}
           <Text style={styles.bio}>{profile.bio}</Text>
@@ -372,17 +419,25 @@ const ProfileScreen = ({ navigation }: ScreenProps<"ProfileScreen">) => {
         {/* Gallery Grid */}
         <View style={styles.galleryContainer}>
           <View style={styles.galleryGrid}>
-            {mockGalleryImages.map((image) => (
-              <TouchableOpacity key={image.id} style={styles.galleryImageContainer}>
-                <Image
-                  source={{ uri: image.url }}
-                  style={styles.galleryImage}
-                  resizeMode="cover"
-                />
-              </TouchableOpacity>
-            ))}
+            {isGalleryLoading ? (
+              <ActivityIndicator size="large" color="#FF6B8A" />
+            ) : (
+              galleryImages.map((imageUrl, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.galleryImageContainer}
+                >
+                  <Image
+                    source={{ uri: imageUrl }}
+                    style={styles.galleryImage}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
+              ))
+            )}
           </View>
         </View>
+
       </ScrollView>
 
       {/* Edit Profile Modal */}
@@ -402,101 +457,101 @@ const ProfileScreen = ({ navigation }: ScreenProps<"ProfileScreen">) => {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Profile Image Picker */}
-            <TouchableOpacity
-              style={[styles.profileImageContainer, { alignSelf: "center", marginBottom: 24 }]}
-              onPress={pickImage}
-            >
-              {selectedImage ? (
-                <Image source={{ uri: selectedImage.uri }} style={styles.profileImage} />
-              ) : profile.profileImage ? (
-                <Image source={{ uri: profile.profileImage }} style={styles.profileImage} />
-              ) : (
-                <View style={styles.profileImagePlaceholder}>
-                  <Ionicons name="person" size={50} color="#FF6B8A" />
-                </View>
-              )}
-              <View style={styles.editImageButton}>
-                <Ionicons name="camera" size={18} color="#fff" />
-              </View>
-            </TouchableOpacity>
-
-            {/* Name Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Name</Text>
-              <TextInput
-                style={styles.textInput}
-                value={editForm.name}
-                onChangeText={(text) => setEditForm((prev) => ({ ...prev, name: text }))}
-                placeholder="Enter your name"
-                placeholderTextColor="#999"
-              />
-            </View>
-
-            {/* Bio Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Bio</Text>
-              <TextInput
-                style={[styles.textInput, { height: 80, textAlignVertical: "top" }]}
-                value={editForm.bio}
-                onChangeText={(text) => setEditForm((prev) => ({ ...prev, bio: text }))}
-                placeholder="Write something about yourself"
-                placeholderTextColor="#999"
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-
-            {/* College Name Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>College Name</Text>
-              <TextInput
-                style={styles.textInput}
-                value={editForm.collegeName}
-                onChangeText={(text) => setEditForm((prev) => ({ ...prev, collegeName: text }))}
-                placeholder="Enter college name"
-                placeholderTextColor="#999"
-              />
-            </View>
-
-            {/* Phone Number Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Phone Number</Text>
-              <TextInput
-                style={styles.textInput}
-                value={editForm.phoneNo}
-                onChangeText={(text) => setEditForm((prev) => ({ ...prev, phoneNo: text }))}
-                placeholder="Enter phone number"
-                placeholderTextColor="#999"
-                keyboardType="phone-pad"
-              />
-            </View>
-
-            {/* Year Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Year</Text>
+              {/* Profile Image Picker */}
               <TouchableOpacity
-                style={styles.textInput}
-                onPress={() => setYearDropdownVisible(true)}
+                style={[styles.profileImageContainer, { alignSelf: "center", marginBottom: 24 }]}
+                onPress={pickImage}
               >
-                <Text style={{ color: editForm.year ? "#333" : "#999" }}>
-                  {editForm.year || "Select Year"}
-                </Text>
+                {selectedImage ? (
+                  <Image source={{ uri: selectedImage.uri }} style={styles.profileImage} />
+                ) : profile.profileImage ? (
+                  <Image source={{ uri: profile.profileImage }} style={styles.profileImage} />
+                ) : (
+                  <View style={styles.profileImagePlaceholder}>
+                    <Ionicons name="person" size={50} color="#FF6B8A" />
+                  </View>
+                )}
+                <View style={styles.editImageButton}>
+                  <Ionicons name="camera" size={18} color="#fff" />
+                </View>
               </TouchableOpacity>
-            </View>
 
-            {/* Save Button */}
-            <TouchableOpacity
-              style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
-              onPress={handleSaveProfile}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.saveButtonText}>Save Changes</Text>
-              )}
-            </TouchableOpacity>
+              {/* Name Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Name</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={editForm.name}
+                  onChangeText={(text) => setEditForm((prev) => ({ ...prev, name: text }))}
+                  placeholder="Enter your name"
+                  placeholderTextColor="#999"
+                />
+              </View>
+
+              {/* Bio Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Bio</Text>
+                <TextInput
+                  style={[styles.textInput, { height: 80, textAlignVertical: "top" }]}
+                  value={editForm.bio}
+                  onChangeText={(text) => setEditForm((prev) => ({ ...prev, bio: text }))}
+                  placeholder="Write something about yourself"
+                  placeholderTextColor="#999"
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+
+              {/* College Name Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>College Name</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={editForm.collegeName}
+                  onChangeText={(text) => setEditForm((prev) => ({ ...prev, collegeName: text }))}
+                  placeholder="Enter college name"
+                  placeholderTextColor="#999"
+                />
+              </View>
+
+              {/* Phone Number Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Phone Number</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={editForm.phoneNo}
+                  onChangeText={(text) => setEditForm((prev) => ({ ...prev, phoneNo: text }))}
+                  placeholder="Enter phone number"
+                  placeholderTextColor="#999"
+                  keyboardType="phone-pad"
+                />
+              </View>
+
+              {/* Year Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Year</Text>
+                <TouchableOpacity
+                  style={styles.textInput}
+                  onPress={() => setYearDropdownVisible(true)}
+                >
+                  <Text style={{ color: editForm.year ? "#333" : "#999" }}>
+                    {editForm.year || "Select Year"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Save Button */}
+              <TouchableOpacity
+                style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+                onPress={handleSaveProfile}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save Changes</Text>
+                )}
+              </TouchableOpacity>
             </ScrollView>
           </View>
         </View>
