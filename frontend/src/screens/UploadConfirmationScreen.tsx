@@ -144,32 +144,17 @@ const UploadConfirmationScreen = ({
               ]}
             >
               <Image source={{ uri: p.uri }} style={styles.previewImage} />
+
               <View style={styles.locationBadge}>
                 <Text style={styles.locationText}>
                   {photosToUpload.length > 1
                     ? `Photo ${index + 1}/${photosToUpload.length}`
                     : "Main Court"}
                 </Text>
-            <React.Fragment key={index}>
-              <View
-                style={[
-                  styles.imageCard,
-                  { width: width - 40 },
-                ]}
-              >
-                <Image source={{ uri: p.uri }} style={styles.previewImage} />
-
-                <View style={styles.locationBadge}>
-                  <Text style={styles.locationText}>
-                    📍{" "}
-                    {photosToUpload.length > 1
-                      ? `Photo ${index + 1}/${photosToUpload.length}`
-                      : "Main Court"}
-                  </Text>
-                </View>
               </View>
             </View>
           ))}
+
         </ScrollView>
       </View>
 
@@ -191,9 +176,8 @@ const UploadConfirmationScreen = ({
         <Text style={styles.primaryButtonText}>
           {isUploading
             ? "Uploading..."
-            : `Post ${photosToUpload.length} Photo${
-                photosToUpload.length > 1 ? "s" : ""
-              } >`}
+            : `Post ${photosToUpload.length} Photo${photosToUpload.length > 1 ? "s" : ""
+            } >`}
         </Text>
       </TouchableOpacity>
 
