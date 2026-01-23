@@ -7,11 +7,12 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
-import { useUser } from "@clerk/clerk-expo";
+import { useUser, useAuth } from "@clerk/clerk-expo";
 import { myUploadsStyles } from "../styles/MyUploadsStyle";
 import { useProfile } from "../context/ProfileContext";
 import {
@@ -32,9 +33,11 @@ const filterOptions: { key: FilterKey; label: string }[] = [
 ];
 
 const MyUploadsScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { profile } = useProfile();
   const { user } = useUser();
+  const { getToken } = useAuth();
+
   const [uploads, setUploads] = useState<UserUpload[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isSliderVisible, setIsSliderVisible] = useState(false);
@@ -64,6 +67,43 @@ const MyUploadsScreen: React.FC = () => {
     }
   };
 
+  // ---------------- DELETE LOGIC ----------------
+
+  const confirmDelete = (upload: UserUpload) => {
+    Alert.alert("Delete photo?", "This action cannot be undone.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => handleDelete(upload),
+      },
+    ]);
+  };
+
+  const handleDelete = async (upload: UserUpload) => {
+    try {
+      const token = await getToken();
+
+      await fetch(`${API_BASE_URL}/api/v1/photos/deletePhoto`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ imageUrl: upload.uri }),
+      });
+
+      setUploads((prev) => prev.filter((u) => u.uri !== upload.uri));
+
+      if (filteredUploads.length <= 1) {
+        setIsSliderVisible(false);
+      }
+
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  };
+
   const filteredUploads = useMemo(() => {
     let list = uploads;
     if (selectedFilter === "Events") {
@@ -77,13 +117,11 @@ const MyUploadsScreen: React.FC = () => {
         return tb - ta;
       });
     }
-    // Places could be implemented when backend provides categories; for now, same as all.
     return list;
   }, [uploads, selectedFilter]);
 
   const groupedUploads = useMemo(() => {
     return filteredUploads.reduce((acc, upload) => {
-      // Use timestamp month for grouping if no section provided
       const section =
         upload.badge === "live" || upload.badge === "ended"
           ? "THIS WEEK"
@@ -98,6 +136,8 @@ const MyUploadsScreen: React.FC = () => {
     (upload) => upload.badge === "live" || upload.badge === "ended"
   ).length;
 
+  // ---------------- SLIDER ----------------
+
   const openSlider = (uploadId: string) => {
     const index = filteredUploads.findIndex((item) => item.id === uploadId);
     setActiveIndex(index >= 0 ? index : 0);
@@ -107,14 +147,17 @@ const MyUploadsScreen: React.FC = () => {
   const closeSlider = () => setIsSliderVisible(false);
 
   const goPrev = () => {
+    if (filteredUploads.length <= 1) return;
     setActiveIndex((prev) =>
       prev === 0 ? filteredUploads.length - 1 : prev - 1
     );
   };
 
   const goNext = () => {
+    if (filteredUploads.length <= 1) return;
     setActiveIndex((prev) => (prev + 1) % filteredUploads.length);
   };
+
 
   const currentUpload = filteredUploads[activeIndex] || filteredUploads[0];
   const sliderCaption =
@@ -123,14 +166,16 @@ const MyUploadsScreen: React.FC = () => {
 
   const renderBadge = (badge?: UserUpload["badge"]) => {
     if (!badge) return null;
-    const label = badge === "live" ? "LIVE" : badge === "ended" ? "ENDED" : "FEATURED";
+    const label =
+      badge === "live" ? "LIVE" : badge === "ended" ? "ENDED" : "FEATURED";
     const background =
       badge === "live"
         ? "#FFEDEE"
         : badge === "ended"
-        ? "#1A1A1A"
-        : "#FFF7E0";
-    const color = badge === "ended" ? "#fff" : badge === "live" ? "#FF4D6D" : "#A87D2D";
+          ? "#1A1A1A"
+          : "#FFF7E0";
+    const color =
+      badge === "ended" ? "#fff" : badge === "live" ? "#FF4D6D" : "#A87D2D";
 
     return (
       <View style={[myUploadsStyles.badge, { backgroundColor: background }]}>
@@ -145,7 +190,9 @@ const MyUploadsScreen: React.FC = () => {
       <View style={myUploadsStyles.header}>
         <View>
           <Text style={myUploadsStyles.title}>My Uploads</Text>
-          <Text style={myUploadsStyles.subtitle}>Photos you've shared on campus</Text>
+          <Text style={myUploadsStyles.subtitle}>
+            Photos you've shared on campus
+          </Text>
         </View>
 
         <TouchableOpacity onPress={() => navigation.navigate("ProfileScreen")}>
@@ -199,9 +246,16 @@ const MyUploadsScreen: React.FC = () => {
       </View>
 
       {/* Uploads */}
-      <ScrollView style={myUploadsStyles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={myUploadsStyles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         {isLoading ? (
-          <ActivityIndicator size="large" color="#FF6B8A" style={{ marginTop: 12 }} />
+          <ActivityIndicator
+            size="large"
+            color="#FF6B8A"
+            style={{ marginTop: 12 }}
+          />
         ) : uploads.length === 0 ? (
           <Text style={myUploadsStyles.emptyState}>
             No uploads yet. Tap the camera to start sharing!
@@ -211,38 +265,50 @@ const MyUploadsScreen: React.FC = () => {
             <View key={section} style={myUploadsStyles.section}>
               <View style={myUploadsStyles.sectionHeader}>
                 <Text style={myUploadsStyles.sectionTitle}>{section}</Text>
-                {section === "THIS WEEK" && items.length >= 3 && (
-                  <View style={myUploadsStyles.newBadge}>
-                    <Text style={myUploadsStyles.newBadgeText}>NEW</Text>
-                  </View>
-                )}
               </View>
 
               <View style={myUploadsStyles.uploadsGrid}>
                 {items.map((upload) => (
-                  <TouchableOpacity
-                    key={upload.id}
-                    style={myUploadsStyles.uploadCard}
-                    activeOpacity={0.9}
-                    onPress={() => openSlider(upload.id)}
-                  >
-                    <Image
-                      source={{ uri: upload.uri }}
-                      style={myUploadsStyles.uploadImage}
-                    />
-                    {renderBadge(upload.badge)}
-                    <View style={myUploadsStyles.uploadInfo}>
-                      <Text style={myUploadsStyles.uploadTimestamp}>
-                        {formatTimestamp(upload.timestamp)}
-                      </Text>
-                      <View style={myUploadsStyles.uploadLocationContainer}>
-                        <Ionicons name="location-outline" size={14} color="#FF4757" />
-                        <Text style={myUploadsStyles.uploadLocation}>
-                          {upload.location || "Shared snap"}
+                  <View key={upload.id} style={myUploadsStyles.uploadCard}>
+                    {/* DELETE BUTTON */}
+                    <TouchableOpacity
+                      style={myUploadsStyles.deleteBtn}
+                      onPress={() => confirmDelete(upload)}
+                    >
+                      <Ionicons name="trash-outline" size={18} color="red" />
+                    </TouchableOpacity>
+
+                    {/* IMAGE PRESS OPENS SLIDER */}
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      onPress={() => openSlider(upload.id)}
+                    >
+                      <Image
+                        source={{ uri: upload.uri }}
+                        style={myUploadsStyles.uploadImage}
+                      />
+                      {renderBadge(upload.badge)}
+                      <View style={myUploadsStyles.uploadInfo}>
+                        <Text style={myUploadsStyles.uploadTimestamp}>
+                          {formatTimestamp(upload.timestamp)}
                         </Text>
+                        <View
+                          style={
+                            myUploadsStyles.uploadLocationContainer
+                          }
+                        >
+                          <Ionicons
+                            name="location-outline"
+                            size={14}
+                            color="#FF4757"
+                          />
+                          <Text style={myUploadsStyles.uploadLocation}>
+                            {upload.location || "Shared snap"}
+                          </Text>
+                        </View>
                       </View>
-                    </View>
-                  </TouchableOpacity>
+                    </TouchableOpacity>
+                  </View>
                 ))}
               </View>
             </View>
@@ -259,13 +325,27 @@ const MyUploadsScreen: React.FC = () => {
       >
         <View style={myUploadsStyles.modalOverlay}>
           <View style={myUploadsStyles.sliderFrame}>
-            <TouchableOpacity style={myUploadsStyles.closeButton} onPress={closeSlider}>
+            {/* DELETE FROM SLIDER */}
+            <TouchableOpacity
+              style={myUploadsStyles.sliderDeleteButton}
+              onPress={() => currentUpload && confirmDelete(currentUpload)}
+            >
+              <Ionicons name="trash-outline" size={22} color="#ff4d4d" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={myUploadsStyles.closeButton}
+              onPress={closeSlider}
+            >
               <Ionicons name="close" size={22} color="#1A1A1A" />
             </TouchableOpacity>
 
             <View style={myUploadsStyles.sliderBody}>
               <TouchableOpacity
-                style={[myUploadsStyles.navButton, myUploadsStyles.navButtonLeft]}
+                style={[
+                  myUploadsStyles.navButton,
+                  myUploadsStyles.navButtonLeft,
+                ]}
                 onPress={goPrev}
               >
                 <Ionicons name="chevron-back" size={22} color="#1A1A1A" />
@@ -286,7 +366,10 @@ const MyUploadsScreen: React.FC = () => {
               </View>
 
               <TouchableOpacity
-                style={[myUploadsStyles.navButton, myUploadsStyles.navButtonRight]}
+                style={[
+                  myUploadsStyles.navButton,
+                  myUploadsStyles.navButtonRight,
+                ]}
                 onPress={goNext}
               >
                 <Ionicons name="chevron-forward" size={22} color="#1A1A1A" />
@@ -294,8 +377,12 @@ const MyUploadsScreen: React.FC = () => {
             </View>
 
             <View style={myUploadsStyles.sliderMeta}>
-              <Text style={myUploadsStyles.sliderCaption}>{sliderCaption}</Text>
-              <Text style={myUploadsStyles.sliderTimestamp}>{sliderTimestamp}</Text>
+              <Text style={myUploadsStyles.sliderCaption}>
+                {sliderCaption}
+              </Text>
+              <Text style={myUploadsStyles.sliderTimestamp}>
+                {sliderTimestamp}
+              </Text>
             </View>
           </View>
         </View>

@@ -3,6 +3,7 @@ import path from "path";
 import Photo from "../models/Photo.js";
 import User from "../models/User.js";
 import { singleUploadToAzure, multiUploadToAzure } from "../utils/azure.js";
+import { deleteFromAzure } from "../utils/azure.js";
 
 const buildFileName = (originalName, clerkUserId) => {
   const ext = path.extname(originalName || "").toLowerCase();
@@ -119,9 +120,9 @@ export const getUserPhotos = async (req, res) => {
 
     // Fetch user photos from the database
     const photos = await Photo.find(
-        { clerkUserId: clerkId },
-        { _id: 0, imageUrl: 1 }
-      )
+      { clerkUserId: clerkId },
+      { _id: 0, imageUrl: 1 }
+    )
       .sort({ timestamp: -1 }) // Sort by newest first
       .lean(); // Convert to plain JavaScript objects for better performance
 
@@ -130,7 +131,7 @@ export const getUserPhotos = async (req, res) => {
     const imageUrls = photos.map(p => p.imageUrl);
 
     return res.status(200).json(imageUrls);
-    
+
   } catch (error) {
     console.error("Error fetching user photos:", error);
     return res.status(500).json({
@@ -248,7 +249,66 @@ export const testUploadPhoto = async (req, res) => {
   }
 };
 
+export const deletePhoto = async (req, res) => {
+  try {
+    console.log("🗑️ Delete photo endpoint hit");
 
+    const { imageUrl } = req.body;
+
+    if (!req.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!imageUrl) {
+      return res.status(400).json({ message: "imageUrl is required" });
+    }
+
+    console.log("Deleting image:", imageUrl);
+
+    // 1. Delete from Azure
+    await deleteFromAzure(imageUrl);
+    console.log("✅ Deleted from Azure");
+
+    // 2. Find affected photos
+    const photos = await Photo.find({
+      clerkUserId: req.userId,
+      $or: [
+        { imageUrl: imageUrl },
+        { imageUrl: { $in: [imageUrl] } },
+      ],
+    });
+
+    // 3. Fix DB properly
+    for (const photo of photos) {
+      if (Array.isArray(photo.imageUrl)) {
+        photo.imageUrl = photo.imageUrl.filter((url) => url !== imageUrl);
+
+        // if no images left, delete whole doc
+        if (photo.imageUrl.length === 0) {
+          await Photo.deleteOne({ _id: photo._id });
+          console.log("🗑️ Deleted empty photo document:", photo._id);
+        } else {
+          await photo.save();
+          console.log("✏️ Updated photo document:", photo._id);
+        }
+      } else {
+        // single image document → delete whole thing
+        await Photo.deleteOne({ _id: photo._id });
+        console.log("🗑️ Deleted single-image document:", photo._id);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Photo deleted successfully",
+    });
+  } catch (error) {
+    console.error("❌ Delete photo error:", error);
+    return res.status(500).json({
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
 
 
 export const uploadPhotos = async (req, res) => {

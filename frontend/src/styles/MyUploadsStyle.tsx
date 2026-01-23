@@ -161,10 +161,10 @@ export const myUploadsStyles = StyleSheet.create({
     color: '#1A1A1A',
   },
   profileAvatar: {
-  width: 32,
-  height: 32,
-  borderRadius: 16,
-},
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
   emptyState: {
     textAlign: 'center',
     color: '#999',
@@ -249,5 +249,25 @@ export const myUploadsStyles = StyleSheet.create({
     fontSize: 13,
     color: '#8c8c8c',
   },
+  deleteBtn: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    zIndex: 10,
+    backgroundColor: "#fff",
+    padding: 6,
+    borderRadius: 20,
+    elevation: 4,
+  },
+  sliderDeleteButton: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    zIndex: 20,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    padding: 8,
+    borderRadius: 20,
+  },
+
 
 });
