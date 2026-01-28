@@ -1,3 +1,4 @@
+import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Location from "expo-location";
 import * as ImagePicker from "expo-image-picker";
@@ -193,40 +194,47 @@ export default function CameraScreen({
 
       {/* Top controls */}
       <View style={styles.topControls}>
-        <TouchableOpacity onPress={toggleFlash} style={styles.topButton}>
-          <Text style={styles.topButtonText}>
-            ⚡ {flash === "on" ? "On" : "Off"}
-          </Text>
+        <TouchableOpacity onPress={toggleFlash} style={styles.iconButton}>
+          <Ionicons
+            name={flash === "on" ? "flash" : "flash-off"}
+            size={22}
+            color="#fff"
+          />
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={toggleCameraFacing} style={styles.topButton}>
-          <Text style={styles.topButtonText}>🔄</Text>
+        <TouchableOpacity onPress={toggleCameraFacing} style={styles.iconButton}>
+          <MaterialCommunityIcons
+            name="camera-switch"
+            size={24}
+            color="#fff"
+          />
         </TouchableOpacity>
       </View>
+
 
       {/* Bottom pill controls */}
       <View style={styles.bottomPill}>
-        {/* Gallery preview */}
-        <TouchableOpacity onPress={handleGalleryPick}>
-          <View style={styles.galleryPreview}>
-            <Text style={styles.previewText}>🖼️</Text>
-          </View>
-        </TouchableOpacity>
+      {/* Gallery */}
+      <TouchableOpacity onPress={handleGalleryPick} style={styles.iconCircle}>
+        <Feather name="image" size={22} color="#111" />
+      </TouchableOpacity>
 
-        {/* Capture button */}
-        <TouchableOpacity onPress={handletheCapture}>
-          <View style={styles.captureButton}>
-            <Text style={styles.captureIcon}>📷</Text>
-          </View>
-        </TouchableOpacity>
+      {/* Capture */}
+      <TouchableOpacity onPress={handletheCapture}>
+        <View style={styles.shutterOuter}>
+          <View style={styles.shutterInner} />
+        </View>
+      </TouchableOpacity>
 
-        {/* Settings */}
-        <TouchableOpacity onPress={() => navigation.navigate("SettingsScreen")}>
-          <View style={styles.settingsButton}>
-            <Text style={styles.settingsIcon}>⚙️</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
+      {/* Settings */}
+      <TouchableOpacity
+        onPress={() => navigation.navigate("SettingsScreen")}
+        style={styles.iconCircle}
+      >
+        <Feather name="settings" size={22} color="#111" />
+      </TouchableOpacity>
+    </View>
+
     </View>
   );
 }
