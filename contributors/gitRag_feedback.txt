@@ -1,0 +1,9 @@
+It was honestly a great experience working on the SnapMap project.  
+This was my first open-source project, and it was amazing.  
+I solved issues, made mistakes, learned from them, fixed bugs,  
+and helped improve the UI. All of this helped me learn a lot  
+while working on a real-world project.  
+I would like to thank 23abdul23, the maintainer of the project,  
+who did a great job managing everything.  
+Overall, OpenCode was well-organized and beginner-friendly,  
+and it motivated me to contribute more confidently in future editions.
