@@ -1,0 +1,5 @@
+Working on this repo was a blast. Learnt a lot of new technologies, specially the clerk... Like authentication is so easy that way. Collaborating with a lot of great coders was fun.
+
+Usually we just keep on thinking, on how snapchat was made, how insta was made. Here, we made something similar to that, breaking that mind block.
+
+Abdul... great maintainer... great friend... could not have asked for a better person to ask your doubts regarding the issues, or opencode.
