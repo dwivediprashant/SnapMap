@@ -1,0 +1,12 @@
+OpenCode Feedback – CoderMS07
+
+This OpenCode edition was an amazing learning experience.
+The competitive issues pushed me to think about UI quality, reusability,
+and clean architecture rather than just "making it work".
+
+Things I liked:
+- Clear problem statements
+- Active maintainers
+
+Thank you for the opportunity.
+Shit happens, keep pushing.
